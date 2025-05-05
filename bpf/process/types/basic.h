@@ -2286,10 +2286,20 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case syscall64_type:
 	case size_type:
 	case s64_ty:
-	case u64_ty:
-		probe_read(args, sizeof(__u64), &arg);
+	case u64_ty: {
+		// Test if I can have cast a ptr num back to a pointer of fds, Ah, it works!
+		__u32 myfds[2] = {5, 4};
+		unsigned long arg = (unsigned long)myfds;
+		probe_read(args, sizeof(__u64), (__u32 *)arg); // this is the correct way for doing it. this will get 4, 3
 		size = sizeof(__u64);
+
+
+		__u32 *read_fds = (__u32 *)args;
+		__u32 fd1 = read_fds[0];
+		__u32 fd2 = read_fds[1];
+		bpf_printk("--- fd1 is %u, fd2 is %u\n", fd1, fd2);
 		break;
+	}
 	/* Consolidate all the types to save instructions */
 	case int_type:
 	case s32_ty:

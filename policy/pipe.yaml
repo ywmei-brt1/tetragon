@@ -1,0 +1,35 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "pipe2"
+spec:
+  lists:
+  - name: "pipe"
+    type: "syscalls"
+    values:
+    - "sys_pipe2"
+  kprobes:
+  - call: "list:pipe"
+    message: "creating a pipe with 2 fd"
+    syscall: true
+    return: true
+    args:
+    - index: 0
+      type: "uint64"
+      label: "fd[2]"
+    - index: 1
+      type: "int"
+      label: "flag"
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchNamespaces:
+      - namespace: "Pid"
+        operator: "NotIn"
+        values:
+        - "host_ns"
+    returnArgAction: Post
+
+
+
