@@ -324,6 +324,10 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		// Look up socket in our sock->pid_tgid map
 		update_pid_tid_from_sock(e, ((struct sk_type *)args)->sockaddr);
 		break;
+	case pipe_fds_type:
+		probe_read(args, sizeof(int) * 2, (void *)arg);
+		size = sizeof(int) * 2;
+		break;
 	case cred_type:
 		size = copy_cred(args, arg);
 		break;
@@ -660,8 +664,15 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 
 	/* If return arg is needed mark retprobe */
 	ty = config->argreturn;
-	if (ty > 0)
-		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+	if (ty > 0) {
+		int arg_index = config->argreturnindex;
+		unsigned long ptr = 1;
+
+		if (arg_index >= 0 && arg_index < 5)
+			ptr = (&e->a0)[arg_index];
+
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, ptr);
+	}
 #endif
 
 #ifdef GENERIC_LSM
@@ -1010,7 +1021,12 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
+		unsigned long arg_val = ret;
+
+		if (ty_arg == pipe_fds_type)
+			arg_val = info.ptr;
+
+		size += read_arg(ctx, e, 0, ty_arg, size, arg_val, 0);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 

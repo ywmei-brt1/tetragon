@@ -1,0 +1,56 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "pipe2"
+spec:
+  lists:
+  - name: "dups"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+    - "sys_dup2"
+    - "sys_dup3"
+  - name: "pipe"
+    type: "syscalls"
+    values:
+    - "sys_pipe2"
+  kprobes:
+  - call: "list:pipe"
+    message: "Installing a file descriptor"
+    syscall: true
+    return: true
+    args:
+    - index: 1
+      type: "int"
+      label: "flag"
+    returnArg:
+      index: 0
+      type: "pipe_fds"
+      label: "fd[2]"
+    selectors:
+    - matchNamespaces:
+      - namespace: "Pid"
+        operator: "NotIn"
+        values:
+        - "host_ns"
+    returnArgAction: Post
+  - call: "list:dups"
+    message: "Installing a file descriptor"
+    syscall: true
+    return: true
+    args:
+    - index: 0
+      type: "int"
+      label: "old_fd"
+    - index: 1
+      type: "int"
+      label: "new_fd"
+    returnArg:
+      type: "int"
+    selectors:
+    - matchNamespaces:
+      - namespace: "Pid"
+        operator: "NotIn"
+        values:
+        - "host_ns"
+    returnArgAction: Post

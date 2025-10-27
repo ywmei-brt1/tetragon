@@ -1,0 +1,579 @@
+diff --git a/bpf/process/generic_calls.h b/bpf/process/generic_calls.h
+index 8e322ecc3..9ef00c7f2 100644
+--- a/bpf/process/generic_calls.h
++++ b/bpf/process/generic_calls.h
+@@ -324,6 +324,10 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
+ 		// Look up socket in our sock->pid_tgid map
+ 		update_pid_tid_from_sock(e, ((struct sk_type *)args)->sockaddr);
+ 		break;
++	case pipe_fds_type:
++		probe_read(args, sizeof(int) * 2, (void *)arg);
++		size = sizeof(int) * 2;
++		break;
+ 	case cred_type:
+ 		size = copy_cred(args, arg);
+ 		break;
+@@ -660,8 +664,15 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
+
+ 	/* If return arg is needed mark retprobe */
+ 	ty = config->argreturn;
+-	if (ty > 0)
+-		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
++	if (ty > 0) {
++		int arg_index = config->argreturnindex;
++		unsigned long ptr = 1;
++
++		if (arg_index >= 0 && arg_index < 5)
++			ptr = (&e->a0)[arg_index];
++
++		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, ptr);
++	}
+ #endif
+
+ #ifdef GENERIC_LSM
+@@ -1010,7 +1021,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
+ 	ty_arg = config->argreturn;
+ 	do_copy = config->argreturncopy;
+ 	if (ty_arg) {
+-		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
++		size += read_arg(ctx, e, 0, ty_arg, size, info.ptr, 0);
+ #ifdef __LARGE_BPF_PROG
+ 		struct socket_owner owner;
+
+diff --git a/bpf/process/types/basic.h b/bpf/process/types/basic.h
+index fa0379cf3..f9168c24e 100644
+--- a/bpf/process/types/basic.h
++++ b/bpf/process/types/basic.h
+@@ -91,7 +91,7 @@ enum {
+ 	socket_type = 41,
+
+ 	dentry_type = 42,
+-
++  pipe_fds_type = 43,
+ 	nop_s64_ty = -10,
+ 	nop_u64_ty = -11,
+ 	nop_u32_ty = -12,
+@@ -196,13 +196,13 @@ struct event_config {
+ 	 * supported actions include: TrackSock and UntrackSock.
+ 	 */
+ 	__u32 argreturnaction;
++  __s32 argreturnindex;
+ 	/* policy id identifies the policy of this generic hook and is used to
+ 	 * apply policies only on certain processes. A value of 0 indicates
+ 	 * that the hook always applies and no check will be performed.
+ 	 */
+ 	__u32 policy_id;
+ 	__u32 flags;
+-	__u32 pad;
+ 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
+ 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_ARG];
+ } __attribute__((packed));
+@@ -1451,6 +1451,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
+ 		return sizeof(struct msg_linux_binprm);
+ 	case net_dev_ty:
+ 		return IFNAMSIZ;
++  case pipe_fds_type:
++		return sizeof(int) * 2;
+ 	// nop or something else we do not process here
+ 	default:
+ 		return 0;
+diff --git a/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpolicies.yaml b/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpolicies.yaml
+index a97bc7914..203758700 100644
+--- a/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpolicies.yaml
++++ b/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpolicies.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpoliciesnamespaced.yaml b/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpoliciesnamespaced.yaml
+index 1a673189a..ae140da27 100644
+--- a/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpoliciesnamespaced.yaml
++++ b/install/kubernetes/tetragon/crds-yaml/cilium.io_tracingpoliciesnamespaced.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/pipe2.yaml b/pipe2.yaml
+new file mode 100644
+index 000000000..5f18a6874
+--- /dev/null
++++ b/pipe2.yaml
+@@ -0,0 +1,56 @@
++apiVersion: cilium.io/v1alpha1
++kind: TracingPolicy
++metadata:
++  name: "pipe2"
++spec:
++  lists:
++  - name: "dups"
++    type: "syscalls"
++    values:
++    - "sys_dup"
++    - "sys_dup2"
++    - "sys_dup3"
++  - name: "pipe"
++    type: "syscalls"
++    values:
++    - "sys_pipe2"
++  kprobes:
++  - call: "list:pipe"
++    message: "Installing a file descriptor"
++    syscall: true
++    return: true
++    args:
++    - index: 1
++      type: "int"
++      label: "flag"
++    returnArg:
++      index: 0
++      type: "pipe_fds"
++      label: "fd[2]"
++    selectors:
++    - matchNamespaces:
++      - namespace: "Pid"
++        operator: "NotIn"
++        values:
++        - "host_ns"
++    returnArgAction: Post
++  - call: "list:dups"
++    message: "Installing a file descriptor"
++    syscall: true
++    return: true
++    args:
++    - index: 0
++      type: "int"
++      label: "old_fd"
++    - index: 1
++      type: "int"
++      label: "new_fd"
++    returnArg:
++      type: "int"
++    selectors:
++    - matchNamespaces:
++      - namespace: "Pid"
++        operator: "NotIn"
++        values:
++        - "host_ns"
++    returnArgAction: Post
+diff --git a/pkg/api/tracingapi/client_kprobe.go b/pkg/api/tracingapi/client_kprobe.go
+index 92ac3c188..c3d19241c 100644
+--- a/pkg/api/tracingapi/client_kprobe.go
++++ b/pkg/api/tracingapi/client_kprobe.go
+@@ -617,9 +617,9 @@ type EventConfig struct {
+ 	ArgReturnCopy   int32                                            `align:"argreturncopy"`
+ 	ArgReturn       int32                                            `align:"argreturn"`
+ 	ArgReturnAction int32                                            `align:"argreturnaction"`
++	ArgReturnIndex  int32                                            `align:"argreturnindex"`
+ 	PolicyID        uint32                                           `align:"policy_id"`
+ 	Flags           uint32                                           `align:"flags"`
+-	Pad             uint32                                           `align:"pad"`
+ 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
+ 	UsdtArg         [EventConfigMaxArgs]ConfigUsdtArg                `align:"usdt_arg"`
+ }
+diff --git a/pkg/generictypes/generictypes.go b/pkg/generictypes/generictypes.go
+index 9772543a5..f3f0b6f71 100644
+--- a/pkg/generictypes/generictypes.go
++++ b/pkg/generictypes/generictypes.go
+@@ -66,6 +66,7 @@ const (
+ 	GenericSocketType   = 41
+
+ 	GenericDentryType = 42
++	GenericPipeFds    = 43
+
+ 	GenericNopType     = -1
+ 	GenericInvalidType = -2
+@@ -126,6 +127,7 @@ var genericStringToType = map[string]int{
+ 	"sockaddr":        GenericSockaddrType,
+ 	"socket":          GenericSocketType,
+ 	"dentry":          GenericDentryType,
++	"pipe_fds":        GenericPipeFds,
+ }
+
+ var genericTypeToStringTable = map[int]string{
+@@ -171,6 +173,7 @@ var genericTypeToStringTable = map[int]string{
+ 	GenericSockaddrType:    "sockaddr",
+ 	GenericSocketType:      "socket",
+ 	GenericDentryType:      "dentry",
++	GenericPipeFds:         "pipe_fds",
+ 	GenericInvalidType:     "",
+ }
+
+diff --git a/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml b/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+index a97bc7914..203758700 100644
+--- a/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
++++ b/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml b/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+index 1a673189a..ae140da27 100644
+--- a/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
++++ b/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/pkg/k8s/apis/cilium.io/v1alpha1/types.go b/pkg/k8s/apis/cilium.io/v1alpha1/types.go
+index 2c9230b79..cded55cf2 100644
+--- a/pkg/k8s/apis/cilium.io/v1alpha1/types.go
++++ b/pkg/k8s/apis/cilium.io/v1alpha1/types.go
+@@ -70,7 +70,7 @@ type KProbeArg struct {
+ 	// +kubebuilder:validation:Minimum=0
+ 	// Position of the argument.
+ 	Index uint32 `json:"index"`
+-	// +kubebuilder:validation:Enum=auto;int;int8;uint8;int16;uint16;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;
++	// +kubebuilder:validation:Enum=auto;int;int8;uint8;int16;uint16;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;pipe_fds;
+ 	// +kubebuilder:default=auto
+ 	// Argument type.
+ 	Type string `json:"type"`
+diff --git a/pkg/sensors/tracing/args_linux.go b/pkg/sensors/tracing/args_linux.go
+index 6d4623b24..e03b88187 100644
+--- a/pkg/sensors/tracing/args_linux.go
++++ b/pkg/sensors/tracing/args_linux.go
+@@ -489,6 +489,19 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
+ 		arg.Index = uint64(a.index)
+ 		arg.Label = a.label
+ 		return arg
++	case gt.GenericPipeFds:
++		var fds [2]int32
++		var arg api.MsgGenericKprobeArgString
++
++		err := binary.Read(r, binary.LittleEndian, &fds)
++		if err != nil {
++			logger.GetLogger().Warn("pipe fds type err", logfields.Error, err)
++		}
++
++		arg.Index = uint64(a.index)
++		arg.Value = fmt.Sprintf("[%d, %d]", fds[0], fds[1])
++		arg.Label = a.label
++		return arg
+ 	case gt.GenericCapInheritable:
+ 		var output uint64
+ 		var arg api.MsgGenericKprobeArgCapInheritable
+diff --git a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+index a97bc7914..203758700 100644
+--- a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
++++ b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+index 1a673189a..ae140da27 100644
+--- a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
++++ b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpoliciesnamespaced.yaml
+@@ -206,6 +206,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -318,6 +319,7 @@ spec:
+                           - net_device
+                           - bpf_cmd
+                           - dentry
++                          - pipe_fds
+                           type: string
+                       required:
+                       - index
+@@ -962,6 +964,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -1643,6 +1646,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2262,6 +2266,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+@@ -2891,6 +2896,7 @@ spec:
+                             - net_device
+                             - bpf_cmd
+                             - dentry
++                            - pipe_fds
+                             type: string
+                         required:
+                         - index
+diff --git a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1/types.go b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1/types.go
+index 2c9230b79..cded55cf2 100644
+--- a/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1/types.go
++++ b/vendor/github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1/types.go
+@@ -70,7 +70,7 @@ type KProbeArg struct {
+ 	// +kubebuilder:validation:Minimum=0
+ 	// Position of the argument.
+ 	Index uint32 `json:"index"`
+-	// +kubebuilder:validation:Enum=auto;int;int8;uint8;int16;uint16;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;
++	// +kubebuilder:validation:Enum=auto;int;int8;uint8;int16;uint16;uint32;int32;uint64;int64;char_buf;char_iovec;size_t;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;pipe_fds;
+ 	// +kubebuilder:default=auto
+ 	// Argument type.
+ 	Type string `json:"type"`
+diff --git a/wrap_local.sh b/wrap_local.sh
+new file mode 100755
+index 000000000..d7b72a3a5
+--- /dev/null
++++ b/wrap_local.sh
+@@ -0,0 +1,27 @@
++#!/usr/bin/env bash
++set -e
++
++# unshare: Run a program with some namespaces unshared from the parent.
++unshare \
++    -Ufpm \
++    # -U: Create a new user namespace.
++    # -f: Fork a new process before executing the command (required for -p).
++    # -p: Create a new PID namespace.
++    # -m: Create a new mount namespace.
++    \
++    --kill-child \
++    # Ensure the forked child process is terminated when the main process exits.
++    \
++    --map-user="$(id -u)" \
++    # Map the current user's ID to the same ID inside the new user namespace.
++    \
++    --map-group="$(id -g)" \
++    # Map the current user's group ID to the same ID inside the new user namespace.
++    \
++    --mount-proc \
++    # Mount a new /proc filesystem for the new mount namespace to see correct process info.
++    \
++    "$@"
++    # Pass all arguments given to this script along to the unshare command.
++
++

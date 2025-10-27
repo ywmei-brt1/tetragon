@@ -489,6 +489,19 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
 		return arg
+	case gt.GenericPipeFds:
+		var fds [2]int32
+		var arg api.MsgGenericKprobeArgString
+
+		err := binary.Read(r, binary.LittleEndian, &fds)
+		if err != nil {
+			logger.GetLogger().Warn("pipe fds type err", logfields.Error, err)
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Value = fmt.Sprintf("[%d, %d]", fds[0], fds[1])
+		arg.Label = a.label
+		return arg
 	case gt.GenericCapInheritable:
 		var output uint64
 		var arg api.MsgGenericKprobeArgCapInheritable

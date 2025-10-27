@@ -91,7 +91,7 @@ enum {
 	socket_type = 41,
 
 	dentry_type = 42,
-
+  pipe_fds_type = 43,
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -196,13 +196,13 @@ struct event_config {
 	 * supported actions include: TrackSock and UntrackSock.
 	 */
 	__u32 argreturnaction;
+  __s32 argreturnindex;
 	/* policy id identifies the policy of this generic hook and is used to
 	 * apply policies only on certain processes. A value of 0 indicates
 	 * that the hook always applies and no check will be performed.
 	 */
 	__u32 policy_id;
 	__u32 flags;
-	__u32 pad;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_ARG];
 } __attribute__((packed));
@@ -1451,6 +1451,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 		return sizeof(struct msg_linux_binprm);
 	case net_dev_ty:
 		return IFNAMSIZ;
+  case pipe_fds_type:
+		return sizeof(int) * 2;
 	// nop or something else we do not process here
 	default:
 		return 0;
