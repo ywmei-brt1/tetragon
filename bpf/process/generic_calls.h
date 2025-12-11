@@ -1055,6 +1055,14 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+		break;
+	case int32_arr_type: {
+		char *args = args_off(e, size);
+		__u32 count = 2;
+		probe_read(args, sizeof(__u32), &count);
+		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)info.ptr);
+		size += sizeof(__u32) + count * sizeof(__u32);
+	} break;
 	default:
 		break;
 	}

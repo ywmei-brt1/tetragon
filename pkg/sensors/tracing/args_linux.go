@@ -96,6 +96,36 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Value = output
 		arg.Label = a.label
 		return arg
+	case gt.GenericInt32ArrType:
+		var count uint32
+		var arg api.MsgGenericKprobeArgInt32List
+
+		// Read 4 bytes: either count or error code
+		err := binary.Read(r, binary.LittleEndian, &count)
+		if err != nil {
+			logger.GetLogger().Warn("Int32Arr type error (reading count)", logfields.Error, err)
+		} else {
+			// Check for CHAR_BUF_SAVED_FOR_RETPROBE (-4 cast to uint32)
+			// Using the raw value 0xFFFFFFFC
+			if count == 0xFFFFFFFC {
+				// This means the arg was saved for retprobe, no data yet.
+				// We return the empty arg, userspace handling should merge it later or ignore it.
+			} else if count > 2048 {
+				// Sanity check to prevent massive allocations
+				logger.GetLogger().Warn("Int32Arr size too large", "size", count)
+			} else {
+				values := make([]int32, count)
+				if err := binary.Read(r, binary.LittleEndian, &values); err != nil {
+					logger.GetLogger().Warn("Int32Arr type error (reading values)", "count", count, logfields.Error, err)
+				} else {
+					arg.Value = values
+				}
+			}
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Label = a.label
+		return arg
 	case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 		var arg api.MsgGenericKprobeArgFile
 		var flags uint32

@@ -57,13 +57,26 @@ This phase implemented the kernel-side logic to read the new argument type and w
 
 ---
 
-## Next Steps (Phase 3: Golang Implementation & Verification)
-1.  **Golang Code Implementation**:
-    *   Update the userspace event processing logic (likely in `pkg/sensors/tracing/generickprobe.go`) to parse the `int32_arr` event data received from BPF.
-    *   The BPF format is: `[count(u32)][int32][int32]...`.
-    *   Format it correctly for the JSON/gRPC output (`KprobeInt32List`).
-2.  **End-to-End Testing**:
+## Phase 3: Golang Implementation & Verification (Complete)
+This phase updated the Tetragon agent (Go userspace) to parse the events emitted by the BPF code and translate them into the Protobuf format for clients.
+
+### Modified Files
+1.  **`pkg/api/tracingapi/client_kprobe.go`**
+    *   **Change**: Added `MsgGenericKprobeArgInt32List` struct to represent the internal Go version of the argument.
+2.  **`pkg/sensors/tracing/args_linux.go`**
+    *   **Change**: Added parsing logic in `getArg` for `gt.GenericInt32ArrType`. It reads the 4-byte count, handles the `0xFFFFFFFC` (saved for retprobe) code, and reads the array of `int32` values.
+3.  **`pkg/grpc/tracing/tracing.go`**
+    *   **Change**: Updated `getKprobeArgument` to handle `tracingapi.MsgGenericKprobeArgInt32List` and convert it to the `tetragon.KprobeArgument` protobuf message using `KprobeArgument_Int32ListArg`.
+
+### Testing Performed
+*   **Compilation**: `make test-compile` passed (exit code 0), verifying type safety and structural correctness of the new Go code.
+
+---
+
+## Next Steps (Phase 4: End-to-End Testing)
+1.  **End-to-End Testing**:
     *   Create a TracingPolicy for `pipe2` using `type: "int32_arr"` and `returnCopy: true`.
+    *   Verify that `pipe` syscalls produce events with populated file descriptors.
 # 1. Validate KProbe Argument types (checks if int32_arr is accepted)
 go test ./pkg/sensors/tracing -run TestKprobeValidation
 
