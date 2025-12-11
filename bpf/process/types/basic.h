@@ -91,6 +91,7 @@ enum {
 	socket_type = 41,
 
 	dentry_type = 42,
+	int32_arr_type = 43,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,

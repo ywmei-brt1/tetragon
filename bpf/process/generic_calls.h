@@ -374,6 +374,20 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		probe_read(args, sizeof(__u64), (char *)arg);
 		size = sizeof(__u64);
 		break;
+	case int32_arr_type: {
+		if (has_return_copy(argm)) {
+			u64 retid = retprobe_map_get_key(ctx);
+
+			retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
+			return return_error((int *)args, char_buf_saved_for_retprobe);
+		}
+
+		/* Reads 2 integers (8 bytes) from the pointer */
+		__u32 count = 2;
+		probe_read(args, sizeof(__u32), &count);
+		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)arg);
+		size = sizeof(__u32) + count * sizeof(__u32);
+	} break;
 	default:
 		size = 0;
 		break;
