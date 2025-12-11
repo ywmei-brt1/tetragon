@@ -352,6 +352,7 @@ found.
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
+| int32_list_arg | [KprobeInt32List](#tetragon-KprobeInt32List) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -405,6 +406,14 @@ found.
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
 | permission | [string](#string) |  |  |
+
+<a name="tetragon-KprobeInt32List"></a>
+
+### KprobeInt32List
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| values | [int32](#int32) | repeated |  |
 
 <a name="tetragon-KprobeLinuxBinprm"></a>
 

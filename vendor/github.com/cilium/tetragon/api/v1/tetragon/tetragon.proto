@@ -429,6 +429,10 @@ message KprobeBpfMap {
   string MapName = 5;
 }
 
+message KprobeInt32List {
+  repeated int32 values = 1;
+}
+
 message SyscallId {
   uint32 id = 1;
   string abi = 2;
@@ -465,6 +469,7 @@ message KprobeArgument {
     BpfCmd bpf_cmd_arg = 28;
     SyscallId syscall_id = 29;
     KprobeSockaddr sockaddr_arg = 30;
+    KprobeInt32List int32_list_arg = 31;
   }
   string label = 18;
 }

@@ -66,6 +66,7 @@ const (
 	GenericSocketType   = 41
 
 	GenericDentryType = 42
+	GenericInt32ArrType = 43
 
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -126,6 +127,7 @@ var genericStringToType = map[string]int{
 	"sockaddr":        GenericSockaddrType,
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
+	"int32_arr":       GenericInt32ArrType,
 }
 
 var genericTypeToStringTable = map[int]string{
@@ -171,6 +173,7 @@ var genericTypeToStringTable = map[int]string{
 	GenericSockaddrType:    "sockaddr",
 	GenericSocketType:      "socket",
 	GenericDentryType:      "dentry",
+	GenericInt32ArrType:    "int32_arr",
 	GenericInvalidType:     "",
 }
 

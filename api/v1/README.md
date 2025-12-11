@@ -31,6 +31,7 @@
     - [KprobeCapability](#tetragon-KprobeCapability)
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
+    - [KprobeInt32List](#tetragon-KprobeInt32List)
     - [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm)
     - [KprobeNetDev](#tetragon-KprobeNetDev)
     - [KprobePath](#tetragon-KprobePath)
@@ -604,6 +605,7 @@ found.
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
+| int32_list_arg | [KprobeInt32List](#tetragon-KprobeInt32List) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -692,6 +694,21 @@ found.
 | path | [string](#string) |  |  |
 | flags | [string](#string) |  |  |
 | permission | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeInt32List"></a>
+
+### KprobeInt32List
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| values | [int32](#int32) | repeated |  |
 
 
 
