@@ -73,17 +73,52 @@ This phase updated the Tetragon agent (Go userspace) to parse the events emitted
 
 ---
 
-## Next Steps (Phase 4: End-to-End Testing)
-1.  **End-to-End Testing**:
-    *   Create a TracingPolicy for `pipe2` using `type: "int32_arr"` and `returnCopy: true`.
-    *   Verify that `pipe` syscalls produce events with populated file descriptors.
-# 1. Validate KProbe Argument types (checks if int32_arr is accepted)
-go test ./pkg/sensors/tracing -run TestKprobeValidation
+### 5. Automated Unit Testing (Go)
+Layer 2 testing (Go Parser Logic) is covered by `pkg/sensors/tracing/args_linux_test.go`.
 
-# 2. Compile all packages to ensure no type mismatches
-make test-compile
+### 6. Automated E2E Testing (Go)
+Layer 1 & 3 testing (BPF + Integration) is covered by `pkg/sensors/tracing/pipe2_test.go`.
 
-# 3. Verify BPF Compilation
-# This ensures the new C code syntax is correct and can be compiled by clang.
-make tetragon-bpf
+**To run the tests:**
+```bash
+# Run Unit Test (Parser)
+go test -v ./pkg/sensors/tracing/ -run TestGetArgInt32Arr
+
+# Run E2E Test (Requires Root & Clean Env)
+sudo -E $(which go) test -v ./pkg/sensors/tracing/ -run TestKprobePipe2Return
 ```
+
+## Comprehensive Testing Strategy
+To ensure the `int32_arr` feature is production-ready, we adopt a three-layer testing approach.
+
+### Layer 1 & 3: BPF and End-to-End (E2E) Integration
+**Why Combine Them?**
+Testing BPF code in isolation (unit testing) is complex and often requires mocking kernel infrastructure. In Tetragon, E2E tests in `pkg/sensors/tracing` are the standard for validating BPF logic. If the E2E test passes, it proves:
+*   The BPF code loaded successfully.
+*   The BPF code correctly read the data from the kernel (simulating Layer 1).
+*   The BPF code correctly wrote the data to the ring buffer.
+*   The entire pipeline delivered the event to user space.
+
+**Implementation**: A new E2E test `TestKprobePipe2Return` (in `pkg/sensors/tracing/pipe2_test.go`) will:
+1.  Load the `pipe2` TracingPolicy.
+2.  Execute `unix.Pipe2()` to generate real kernel events.
+3.  Verify the event contains the exact file descriptors returned by the syscall.
+
+### Layer 2: Golang Unit Test (Parser Logic)
+**Goal**: Verify that the Go userspace code correctly parses raw binary data from BPF, independent of the kernel or BPF execution. This ensures that *if* BPF sends the right bytes, Go will *always* handle them correctly.
+
+**Scope**:
+*   Target Function: `getArg` in `pkg/sensors/tracing/args_linux.go`.
+*   Input: A synthetic `bytes.Buffer` simulating the BPF ring buffer format:
+    *   `[count (u32)][int32_1][int32_2]...` (e.g., `[2][3][4]`)
+*   Assertions:
+    *   Verify it returns a `MsgGenericKprobeArgInt32List`.
+    *   Verify the values match the input (`[3, 4]`).
+    *   Verify it handles the `0xFFFFFFFC` (saved for retprobe) magic value correctly.
+
+---
+
+## Manual testing
+To start tetragon, run `sudo ./tetragon --bpf-lib bpf/objs --tracing-policy examples/tracingpolicy/pipe2.yaml`.
+Then start tetra: `./tetra getevents --policy-names pipe2-monitoring`.
+Then run some pipe command, tetra will report the evnets: `echo "foobar" | grep foo`.
