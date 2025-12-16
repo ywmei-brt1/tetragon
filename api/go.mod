@@ -1,10 +1,10 @@
-module github.com/cilium/tetragon/api
+module github.com/ywmei-brt1/tetragon/api
 
 // renovate: datasource=golang-version depName=go
 go 1.25.0
 
 require (
-	github.com/cilium/tetragon v0.0.0-00010101000000-000000000000
+	github.com/ywmei-brt1/tetragon v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.0
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
@@ -23,6 +23,6 @@ require (
 )
 
 replace (
-	github.com/cilium/tetragon => ../
-	github.com/cilium/tetragon/pkg/k8s => ../pkg/k8s
+	github.com/ywmei-brt1/tetragon => ../
+	github.com/ywmei-brt1/tetragon/pkg/k8s => ../pkg/k8s
 )
