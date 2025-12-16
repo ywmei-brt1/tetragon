@@ -1,4 +1,4 @@
-module github.com/cilium/tetragon/pkg/k8s
+module github.com/ywmei-brt1/tetragon/pkg/k8s
 
 // renovate: datasource=golang-version depName=go
 go 1.25.0
