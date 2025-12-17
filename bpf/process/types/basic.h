@@ -93,6 +93,7 @@ enum {
 	dentry_type = 42,
 
 	bpf_prog_type = 43,
+	int32_arr_type = 44,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,

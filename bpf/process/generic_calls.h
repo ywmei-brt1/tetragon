@@ -385,6 +385,18 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		probe_read(args, sizeof(__u64), (char *)arg);
 		size = sizeof(__u64);
 		break;
+	case int32_arr_type: {
+		if (has_return_copy(argm)) {
+			u64 retid = retprobe_map_get_key(ctx);
+
+			retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
+			return return_error((int *)args, char_buf_saved_for_retprobe);
+		}
+		__u32 count = 2;
+		probe_read(args, sizeof(__u32), &count);
+		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)arg);
+		size = sizeof(__u32) + count * sizeof(__u32);
+	} break;
 	default:
 		size = 0;
 		break;
@@ -1240,6 +1252,13 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
 		break;
+	case int32_arr_type: {
+		char *args = args_off(e, size);
+		__u32 count = 2;
+		probe_read(args, sizeof(__u32), &count);
+		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)info.ptr);
+		size += sizeof(__u32) + count * sizeof(__u32);
+	} break;
 	default:
 		break;
 	}
