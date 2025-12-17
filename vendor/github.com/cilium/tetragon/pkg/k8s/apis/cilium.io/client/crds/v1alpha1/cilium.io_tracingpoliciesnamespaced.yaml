@@ -224,6 +224,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -338,6 +339,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -465,6 +467,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - int32_arr
                           type: string
                       required:
                       - index
@@ -1220,6 +1223,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2012,6 +2016,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2748,6 +2753,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2862,6 +2868,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2997,6 +3004,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - int32_arr
                           type: string
                       required:
                       - index
@@ -3716,6 +3724,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
