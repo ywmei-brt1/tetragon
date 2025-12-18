@@ -158,6 +158,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -273,6 +278,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -401,6 +411,11 @@ spec:
                             is triggered at the entrance of the function. For example, a buffer
                             supplied to read(2) won't have content until kretprobe is triggered.
                           type: boolean
+                        size:
+                          description: Fixed size of the argument (e.g. for int32_arr).
+                          format: int32
+                          minimum: 0
+                          type: integer
                         sizeArgIndex:
                           description: |-
                             Specifies the position of the corresponding size argument for this argument.
@@ -1157,6 +1172,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -1950,6 +1970,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2687,6 +2712,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2802,6 +2832,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2938,6 +2973,11 @@ spec:
                             is triggered at the entrance of the function. For example, a buffer
                             supplied to read(2) won't have content until kretprobe is triggered.
                           type: boolean
+                        size:
+                          description: Fixed size of the argument (e.g. for int32_arr).
+                          format: int32
+                          minimum: 0
+                          type: integer
                         sizeArgIndex:
                           description: |-
                             Specifies the position of the corresponding size argument for this argument.
@@ -3658,6 +3698,11 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Fixed size of the argument (e.g. for int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.

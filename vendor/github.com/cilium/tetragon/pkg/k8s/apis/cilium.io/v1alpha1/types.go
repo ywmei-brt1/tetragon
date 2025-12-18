@@ -87,6 +87,10 @@ type KProbeArg struct {
 	// This field is used only for char_buf and char_iovec types.
 	SizeArgIndex uint32 `json:"sizeArgIndex"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// Fixed size of the argument (e.g. for int32_arr).
+	Size uint32 `json:"size"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// This field is used only for char_buf and char_iovec types. It indicates
 	// that this argument should be read later (when the kretprobe for the

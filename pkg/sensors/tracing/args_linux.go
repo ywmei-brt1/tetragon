@@ -58,6 +58,13 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 		}
 		meta = int(arg.SizeArgIndex)
 	}
+	if arg.Size > 0 {
+		if arg.Size > 0xFFFF {
+			return 0, fmt.Errorf("invalid Size value (>65535): %v", arg.Size)
+		}
+		// Pack Size into bits 8-23
+		meta = meta | (int(arg.Size) << 8)
+	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
 	}

@@ -392,7 +392,9 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 			retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
 			return return_error((int *)args, char_buf_saved_for_retprobe);
 		}
-		__u32 count = 2;
+		__u32 count = (argm >> 8) & 0xffff;
+		if (count > MAX_FILTER_INT_ARGS)
+			count = MAX_FILTER_INT_ARGS;
 		probe_read(args, sizeof(__u32), &count);
 		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)arg);
 		size = sizeof(__u32) + count * sizeof(__u32);
@@ -1245,7 +1247,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	asm volatile("%[size] &= 0x1fff;\n"
 		     : [size] "+r"(size));
 
-	switch (do_copy) {
+	switch (do_copy & 0xff) {
 	case char_buf:
 		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
@@ -1254,7 +1256,9 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 		break;
 	case int32_arr_type: {
 		char *args = args_off(e, size);
-		__u32 count = 2;
+		__u32 count = (do_copy >> 8) & 0xffff;
+		if (count > MAX_FILTER_INT_ARGS)
+			count = MAX_FILTER_INT_ARGS;
 		probe_read(args, sizeof(__u32), &count);
 		probe_read(args + sizeof(__u32), count * sizeof(__u32), (void *)info.ptr);
 		size += sizeof(__u32) + count * sizeof(__u32);

@@ -225,6 +225,7 @@ struct event_config {
 
 #define MAX_ARGS_SIZE	 80
 #define MAX_ARGS_ENTRIES 8
+#define MAX_FILTER_INT_ARGS 8
 #define MAX_MATCH_VALUES 4
 /* String parsing consumes instructions so this adds an additional
  * knob to tune how many instructions we should spend parsing

@@ -15,5 +15,6 @@ spec:
     args:
     - index: 0
       type: "int32_arr"
+      size: 2
       returnCopy: true
       label: "pipefd"
