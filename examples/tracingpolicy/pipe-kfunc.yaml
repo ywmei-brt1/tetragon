@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "pipe-kernel-functions"
+spec:
+  kprobes:
+  - call: "do_pipe2"
+    syscall: false
+    args:
+    - index: 0
+      resolve: "[0]"
+      type: int
+      label: "pipefd[0]"
+    - index: 0
+      resolve: "[1]"
+      type: int
+      label: "pipefd[1]"
